@@ -554,7 +554,29 @@ const App = {
     if (Store.data.settings.darkMode) document.body.classList.add('dark');
     window.addEventListener('hashchange', () => App.route());
     document.addEventListener('keydown', (e) => App.handleKeyboard(e));
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Check for updates every 5 minutes
+        setInterval(() => reg.update(), 5 * 60 * 1000);
+      }).catch(() => {});
+      navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data && e.data.type === 'UPDATE_AVAILABLE') {
+          App.toast('Nová verze dostupná', 'info', 15000, {
+            label: 'Aktualizovat',
+            handler: () => {
+              if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage('SKIP_WAITING');
+              }
+              window.location.reload();
+            }
+          });
+        }
+      });
+      // On new SW activation, reload
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); App._installPrompt = e; });
     if (!window.location.hash) window.location.hash = '#decks';
     else App.route();
