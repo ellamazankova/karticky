@@ -1823,7 +1823,7 @@ const App = {
           <div class="file-drop-icon">\u{1F4C1}</div>
           <p><strong>Přetáhněte soubory sem</strong></p>
           <p class="text-sm text-muted">nebo klikněte pro výběr</p>
-          <p class="text-sm text-muted mt-1">Podporované formáty: .txt, .csv, .tsv, .md, .json</p>
+          <p class="text-sm text-muted mt-1">Podporované formáty: .txt, .csv, .tsv, .md, .json, .pdf</p>
           <input type="file" id="file-upload-input" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none" onclick="event.stopPropagation()" onchange="App.handleFileUpload(this.files)">
         </div>
         <div class="form-group mt-1"><label class="form-label">Formát souboru</label>
@@ -1893,14 +1893,62 @@ const App = {
 
   handleImportFile(input) {
     const file = input.files[0]; if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      this._readPDF(file);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
-      const clean = e.target.result.replace(/^\uFEFF/, '');
+      const clean = (e.target.result || '').replace(/^\uFEFF/, '');
       if (this._importState.tab === 'json') { this._importJsonData = clean; const btn = document.getElementById('import-json-btn'); if (btn) btn.disabled = false; }
       else if (this._importState.tab === 'ai') { const ta = document.getElementById('ai-text'); if (ta) ta.value = clean; }
       else { const ta = document.getElementById('import-text'); if (ta) ta.value = clean; }
     };
     reader.readAsText(file, 'UTF-8');
+  },
+
+  async _readPDF(file) {
+    this.toast('Načítám PDF...', 'info');
+    try {
+      if (!window.pdfjsLib) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.9.155/pdf.min.mjs';
+          s.type = 'module';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Nepodařilo se načíst PDF knihovnu'));
+          document.head.appendChild(s);
+        });
+      }
+      if (!window.pdfjsLib) {
+        // Fallback: load as global script
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Nepodařilo se načíst PDF knihovnu'));
+          document.head.appendChild(s);
+        });
+      }
+      const lib = window.pdfjsLib;
+      lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
+      let text = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(' ') + '\n\n';
+      }
+      text = text.trim();
+      if (!text) { this.toast('PDF neobsahuje čitelný text (možná naskenovaný dokument)', 'warning'); return; }
+      if (this._importState.tab === 'ai') { const ta = document.getElementById('ai-text'); if (ta) ta.value = text; }
+      else { const ta = document.getElementById('import-text'); if (ta) ta.value = text; }
+      this.toast(`PDF načteno (${pdf.numPages} stran)`, 'success');
+    } catch (e) {
+      this.toast('Chyba při čtení PDF: ' + e.message, 'error');
+    }
   },
 
   handleFileUpload(files) {
