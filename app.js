@@ -1834,7 +1834,7 @@ const App = {
         html += `<div class="empty-state"><div class="empty-state-icon">\u{1F916}</div><h3>API klíč není nastaven</h3><p>Pro AI generování kartiček potřebujete Groq API klíč v nastavení.</p><button class="btn btn-primary" onclick="App.navigate('#settings')">Přejít do nastavení</button></div>`;
       } else {
         html += `<p class="text-sm text-muted mb-1">Vložte studijní text a AI automaticky vygeneruje kartičky.</p>
-          <div class="form-group"><label class="form-label">Nahrajte soubor nebo vložte text</label><input type="file" accept=".txt,.md,.html" id="import-file" onchange="App.handleImportFile(this)"></div>
+          <div class="form-group"><label class="form-label">Nahrajte soubor nebo vložte text</label><input type="file" id="import-file" onchange="App.handleImportFile(this)"></div>
           <div class="form-group"><textarea class="textarea" id="ai-text" rows="12" placeholder="Vložte sem studijní text...">${App.esc(state._aiText||'')}</textarea></div>
           <div class="form-group"><label class="form-label">Cílový balíček</label><select class="select" id="import-deck">${decks.map(d => `<option value="${d.id}">${App.esc(d.name)}</option>`).join('')}<option value="__new__">+ Vytvořit nový balíček</option></select></div>
           <div class="form-group" id="import-new-deck-group" style="display:none"><label class="form-label">Název nového balíčku</label><input class="input" id="import-new-deck-name" placeholder="Název balíčku..."></div>
@@ -1843,12 +1843,12 @@ const App = {
       }
     } else if (state.tab === 'json') {
       html += `<p class="text-sm text-muted mb-1">Nahrajte JSON soubor exportovaný z této aplikace.</p>
-        <input type="file" accept=".json" id="import-file" onchange="App.handleImportFile(this)">
+        <input type="file" id="import-file" onchange="App.handleImportFile(this)">
         <div class="form-group mt-1"><label class="form-label">Režim importu</label><select class="select" id="import-json-mode"><option value="merge">Sloučit</option><option value="replace">Nahradit</option></select></div>
         <button class="btn btn-primary btn-block mt-1" id="import-json-btn" onclick="App.importJSONBackup()" disabled>Importovat</button>`;
     } else {
       const placeholder = state.tab === 'csv' ? 'otázka;odpověď' : state.tab === 'text' ? 'Q: Otázka?\nA: Odpověď' : '## Otázka\nOdpověď';
-      html += `<div class="form-group"><label class="form-label">Nahrajte soubor nebo vložte text</label><input type="file" accept=".csv,.txt,.md" id="import-file" onchange="App.handleImportFile(this)"></div>
+      html += `<div class="form-group"><label class="form-label">Nahrajte soubor nebo vložte text</label><input type="file" id="import-file" onchange="App.handleImportFile(this)"></div>
         <div class="form-group"><textarea class="textarea" id="import-text" rows="8" placeholder="${placeholder}"></textarea></div>
         ${state.tab === 'csv' ? `<div class="form-group"><label class="form-label">Oddělovač</label><select class="select" id="import-sep" style="width:auto"><option value=";">Středník (;)</option><option value=",">Čárka (,)</option><option value="\t">Tabulátor</option></select></div>` : ''}
         <div class="form-group"><label class="form-label">Cílový balíček</label><select class="select" id="import-deck">${decks.map(d => `<option value="${d.id}">${App.esc(d.name)}</option>`).join('')}<option value="__new__">+ Vytvořit nový balíček</option></select></div>
