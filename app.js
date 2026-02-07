@@ -401,17 +401,28 @@ Pravidla:
 DŮLEŽITÉ: Odpověz POUZE platným JSON polem:
 [{"front": "otázka", "back": "odpověď"}]`;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', max_tokens: 8192, temperature: 0.7,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Vytvoř kartičky z tohoto textu:\n\n${text}` }
-        ]
-      })
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+    let response;
+    try {
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile', max_tokens: 8192, temperature: 0.7,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Vytvoř kartičky z tohoto textu:\n\n${text.substring(0, 15000)}` }
+          ]
+        })
+      });
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') throw new Error('Časový limit vypršel (60s). Zkuste kratší text.');
+      throw new Error('Nepodařilo se připojit k AI serveru: ' + e.message);
+    }
+    clearTimeout(timeout);
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(`Chyba ${response.status}: ${err.error?.message || JSON.stringify(err)}`);
@@ -1839,7 +1850,8 @@ const App = {
           <div class="form-group"><label class="form-label">Cílový balíček</label><select class="select" id="import-deck">${decks.map(d => `<option value="${d.id}">${App.esc(d.name)}</option>`).join('')}<option value="__new__">+ Vytvořit nový balíček</option></select></div>
           <div class="form-group" id="import-new-deck-group" style="display:none"><label class="form-label">Název nového balíčku</label><input class="input" id="import-new-deck-name" placeholder="Název balíčku..."></div>
           <button class="btn btn-primary btn-block btn-lg" onclick="App.generateAI()" ${state.aiLoading?'disabled':''}>${state.aiLoading?'Generuji kartičky...':'Vygenerovat kartičky pomocí AI'}</button>
-          ${state.aiLoading ? '<p class="text-center text-sm text-muted mt-1">AI analyzuje text... (10-30s)</p>' : ''}`;
+          ${state.aiLoading ? '<p class="text-center text-sm text-muted mt-1">AI analyzuje text... (10-30s)</p>' : ''}
+          ${state.errors.length > 0 ? `<div class="card mt-1" style="border-left:3px solid var(--danger);padding:1rem"><strong>Chyba:</strong> ${state.errors.map(e => App.esc(e)).join('<br>')}</div>` : ''}`;
       }
     } else if (state.tab === 'json') {
       html += `<p class="text-sm text-muted mb-1">Nahrajte JSON soubor exportovaný z této aplikace.</p>
