@@ -1813,7 +1813,7 @@ const App = {
           <p><strong>Přetáhněte soubory sem</strong></p>
           <p class="text-sm text-muted">nebo klikněte pro výběr</p>
           <p class="text-sm text-muted mt-1">Podporované formáty: .txt, .csv, .tsv, .md, .json</p>
-          <input type="file" id="file-upload-input" accept=".txt,.csv,.tsv,.md,.json,.docx" multiple style="display:none" onchange="App.handleFileUpload(this.files)">
+          <input type="file" id="file-upload-input" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none" onclick="event.stopPropagation()" onchange="App.handleFileUpload(this.files)">
         </div>
         <div class="form-group mt-1"><label class="form-label">Formát souboru</label>
           <select class="select" id="file-format" onchange="App._importState._fileFormat=this.value; if(App._importState._fileContent) App._reparseFile()">
@@ -1901,11 +1901,19 @@ const App = {
     state.parsed = null;
     state.errors = [];
 
+    this.toast(`Načítám ${files.length} soubor${files.length > 1 ? 'y' : ''}...`, 'info');
+
     let processed = 0;
     for (const file of state._pendingFiles) {
       const reader = new FileReader();
+      reader.onerror = () => {
+        state._allErrors.push(`${file.name}: nepodařilo se přečíst soubor`);
+        processed++;
+        if (processed === state._pendingFiles.length) this._finalizeFileUpload(files);
+      };
       reader.onload = (e) => {
-        const content = e.target.result.replace(/^\uFEFF/, '');
+        try {
+        const content = (e.target.result || '').replace(/^\uFEFF/, '');
         const ext = file.name.split('.').pop().toLowerCase();
 
         // JSON backup – handle separately
@@ -1944,6 +1952,11 @@ const App = {
 
         processed++;
         if (processed === state._pendingFiles.length) this._finalizeFileUpload(files);
+        } catch (err) {
+          state._allErrors.push(`${file.name}: chyba zpracování (${err.message})`);
+          processed++;
+          if (processed === state._pendingFiles.length) this._finalizeFileUpload(files);
+        }
       };
       reader.readAsText(file, 'UTF-8');
     }
