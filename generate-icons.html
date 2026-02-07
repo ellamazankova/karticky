@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><body>
+<canvas id="c192" width="192" height="192"></canvas>
+<canvas id="c512" width="512" height="512"></canvas>
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  // Background
+  ctx.fillStyle = '#4361ee';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, s * 0.15);
+  ctx.fill();
+  // Card shape
+  const m = s * 0.2;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(m, m * 0.8, s - m * 2, s - m * 1.6, s * 0.05);
+  ctx.fill();
+  // Lines on card
+  ctx.fillStyle = '#4361ee';
+  const lh = s * 0.04;
+  ctx.fillRect(m * 1.4, m * 1.5, s * 0.4, lh);
+  ctx.fillStyle = '#c0c8ff';
+  ctx.fillRect(m * 1.4, m * 1.5 + lh * 2, s * 0.55, lh);
+  ctx.fillRect(m * 1.4, m * 1.5 + lh * 4, s * 0.35, lh);
+  // Download links
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `icon-${s}.png`;
+    a.click();
+  });
+}
+drawIcon(document.getElementById('c192'));
+drawIcon(document.getElementById('c512'));
+document.body.innerHTML += '<p>Icons downloaded! Move them to the flashcards folder.</p>';
+</script>
+</body></html>
