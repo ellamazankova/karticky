@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karticky-v8';
+const CACHE_NAME = 'karticky-v9';
 const ASSETS = ['./index.html', './app.js', './srs.js', './style.css', './manifest.json'];
 
 self.addEventListener('install', e => {

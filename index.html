@@ -63,6 +63,15 @@
 
   <div id="toast-container"></div>
 
+  <script>
+  if (location.search.includes('reset')) {
+    caches.keys().then(k => Promise.all(k.map(c => caches.delete(c)))).then(() => {
+      navigator.serviceWorker.getRegistrations().then(r => Promise.all(r.map(s => s.unregister()))).then(() => {
+        location.replace(location.pathname);
+      });
+    });
+  }
+  </script>
   <script src="srs.js"></script>
   <script src="app.js"></script>
 </body>
